@@ -1,0 +1,37 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Download sample data
+        run: |
+          pip install kaggle
+          mkdir -p data
+          kaggle datasets download tobiasbueck/multilingual-customer-support-tickets \
+            --unzip -p data/multilingual-customer-support-tickets/
+
+      - name: Preprocess
+        run: python src/preprocess.py
+
+      - name: Train (1 epoch)
+        run: |
+          sed -i 's/epochs: 3/epochs: 1/' src/config.yaml
+          python src/train.py
+
+      - name: Evaluate
+        run: python src/evaluate.py
